@@ -1,62 +1,65 @@
 package main
 
 import (
-    "nfl-api/nfl"
-    "sync"
-    "golang.org/x/net/context"
-    "github.com/guregu/db"
-    "fmt"
-    "time"
-    "encoding/json"
-    "os"
-    "log"
+	"encoding/json"
+	"fmt"
+	"nfl-api/nfl"
+	"os"
+	"time"
+
+	"github.com/guregu/db"
+	"golang.org/x/net/context"
 )
 
+var jsonIndent = "  "
 
 func main() {
-
-    ctx := context.Background()
-    ctx = db.OpenSQL(ctx, "nfl", "mysql", "nfl_api:nfl_pass@tcp(192.168.2.101:3306)/nfl?autocommit=true")
-    //ctx = db.OpenSQL(ctx, "nfl", "mysql", "root:root@tcp(172.16.102.129:3306)/nfl?autocommit=true")
-    defer db.Close(ctx) // closes all DB connections
-    var wg sync.WaitGroup
-    wg.Add(1)
-    seattle := nfl.GetTeam("SEA", ctx, wg)
-    jsonStr, _ := json.MarshalIndent(seattle, "", "\t")
-    os.Stdout.Write(jsonStr)
-
-    start := time.Now()
-
-
-    iter := 2
-
-    wg.Add(iter)
-
-    loop := make([]nfl.Teams, iter, iter)
-
-    for i := 0; i < iter; i++ {
-        loop[i] = nfl.GetTeams("", ctx, wg)
-
-    }
-
-    elapsed := time.Since(start)
-    fmt.Printf("\n%v database proc executions took %s\n",iter, elapsed)
-
-    teamTotal := 0
-    for i := 0; i < len(loop); i++ {
-        teamTotal += len(loop[i])
-    }
-    fmt.Printf("rows retreived: %v", teamTotal)
-    //jsonStr, _ := json.MarshalIndent(loop, "", "\t")
-    //os.Stdout.Write(jsonStr)
-
-
+	TestDBConnection()
+	TestAPIScheduleRequest()
 
 }
 
-func trackExecutionTime(start time.Time, name string) {
-    elapsed := time.Since(start)
-    log.Printf("%s took %s", name, elapsed)
+func TestAPIScheduleRequest() {
+	sched := nfl.GetFullSeasonSchedule(2015)
+	jsonStr, _ := json.MarshalIndent(sched, "", jsonIndent)
+	os.Stdout.Write(jsonStr)
+}
+
+func TestDBConnection() {
+	ctx := context.Background()
+	//ctx = db.OpenSQL(ctx, "nfl", "mysql", "nfl_api:nfl_pass@tcp(192.168.2.101:3306)/nfl?autocommit=true")
+	ctx = db.OpenSQL(ctx, "nfl", "mysql", "root:root@tcp(172.16.102.129:3306)/nfl?autocommit=true")
+	defer db.Close(ctx) // closes all DB connections
+	teamChannel := make(chan nfl.Teams)
+	go nfl.GetTeam("SEA", ctx, teamChannel)
+	seattle := <-teamChannel
+
+	jsonStr, _ := json.MarshalIndent(seattle, "", jsonIndent)
+	os.Stdout.Write(jsonStr)
+
+	start := time.Now()
+	iter := 2
+	teamChannel = make(chan nfl.Teams)
+	teamBlock := make([]nfl.Teams, iter, iter)
+
+	for i := 0; i < iter; i++ {
+		go nfl.GetAllTeams(ctx, teamChannel)
+		teams := <-teamChannel
+		teamBlock[i] = teams
+	}
+
+	elapsed := time.Since(start)
+
+	jsonStr, _ = json.MarshalIndent(teamBlock[0], "", jsonIndent)
+	os.Stdout.Write(jsonStr)
+	fmt.Printf("\n%v database proc executions took %s\n", iter, elapsed)
+
+	teamTotal := 0
+	for i := 0; i < len(teamBlock); i++ {
+		teamTotal += len(teamBlock[i])
+	}
+	fmt.Printf("rows retreived: %v", teamTotal)
+
 }
 
 //func printSchedule(season int) {
@@ -68,7 +71,6 @@ func trackExecutionTime(start time.Time, name string) {
 //    }
 //    os.Stdout.Write(b)
 //}
-
 
 //func readFile(s string) []byte {
 //    xmlFile, err := os.Open(s)

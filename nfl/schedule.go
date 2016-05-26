@@ -6,10 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sort"
-	"sync"
-	"golang.org/x/net/context"
-	"github.com/guregu/db"
-	"log"
 )
 
 type SeasonSchedule struct {
@@ -179,35 +175,35 @@ func SetPeriod(games Games) {
 	}
 }
 
- func AddGameToDb (w Week, ctx context.Context, wg sync.WaitGroup)  {
-     defer wg.Done()
+//  func AddGameToDb (w Week, ctx context.Context, wg sync.WaitGroup)  {
+//      defer wg.Done()
 
-     nflDb := db.SQL(ctx, "nfl")
-	 tx, _ := nflDb.Begin()
+//      nflDb := db.SQL(ctx, "nfl")
+// 	 tx, _ := nflDb.Begin()
 
-     stmt, err := tx.Prepare("call InsertUpdateSchedule_p (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-     defer stmt.Close()
-     if err != nil {
-         log.Fatal(err)
-     }
+//      stmt, err := tx.Prepare("call InsertUpdateSchedule_p (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+//      defer stmt.Close()
+//      if err != nil {
+//          log.Fatal(err)
+//      }
 
-	 for _, game := range(w.Games) {
-		 stmt.Exec(game.Eid, game.Gsis, w.)
-	 }
+// 	 for _, game := range(w.Games) {
+// 		 stmt.Exec(game.Eid, game.Gsis, w.)
+// 	 }
 
-	 //CREATE PROCEDURE InsertUpdateSchedule_p
-	 //( IN in_eid varchar(10)
-	 //,IN in_gsis int
-	 //,IN in_season_type char(4)
-	 //,IN in_week_num   int
-	 //,IN in_game_time  varchar(5)
-	 //,IN in_game_datetime datetime
-	 //,IN in_home_team char(30)
-	 //,IN in_home_score int
-	 //,IN in_away_team char(3)
-	 //,IN in_away_score int
-	 //)
+// 	 //CREATE PROCEDURE InsertUpdateSchedule_p
+// 	 //( IN in_eid varchar(10)
+// 	 //,IN in_gsis int
+// 	 //,IN in_season_type char(4)
+// 	 //,IN in_week_num   int
+// 	 //,IN in_game_time  varchar(5)
+// 	 //,IN in_game_datetime datetime
+// 	 //,IN in_home_team char(30)
+// 	 //,IN in_home_score int
+// 	 //,IN in_away_team char(3)
+// 	 //,IN in_away_score int
+// 	 //)
 
-     stmt.Exec(g.Eid, g.Gsis, )
+//      stmt.Exec(g.Eid, g.Gsis, )
 
- }
+//  }
