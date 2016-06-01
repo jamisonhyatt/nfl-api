@@ -4,10 +4,9 @@ import (
 	"database/sql"
 	"log"
 	"strings"
-
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/guregu/db"
 	"golang.org/x/net/context"
+	_ "github.com/lib/pq"
 )
 
 type Conference struct {
@@ -44,7 +43,7 @@ func getTeams(teamID string, ctx context.Context, c chan Teams) {
 
 	nflDb := db.SQL(ctx, "nfl")
 
-	stmt, err := nflDb.Prepare("call GetTeam_p (?)")
+	stmt, err := nflDb.Prepare("select * FROM GetTeam_p ($1)")
 	defer stmt.Close()
 	if err != nil {
 		log.Fatal(err)

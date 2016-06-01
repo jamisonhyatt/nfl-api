@@ -9,6 +9,7 @@ import (
 
 	"github.com/guregu/db"
 	"golang.org/x/net/context"
+	_ "github.com/lib/pq"
 )
 
 var jsonIndent = "  "
@@ -27,8 +28,13 @@ func TestAPIScheduleRequest() {
 
 func TestDBConnection() {
 	ctx := context.Background()
+	//db, err := sql.Open("postgres", "host=192.168.2.101 port=5432 dbname=nfl user=nfl_api  password=nfl_api sslmode=require")
+
 	//ctx = db.OpenSQL(ctx, "nfl", "mysql", "nfl_api:nfl_pass@tcp(192.168.2.101:3306)/nfl?autocommit=true")
-	ctx = db.OpenSQL(ctx, "nfl", "mysql", "root:root@tcp(172.16.102.129:3306)/nfl?autocommit=true")
+	//db, err := sql.Open("postgres", "postgres://pqgotest:password@localhost/pqgotest?sslmode=verify-full")
+
+	//ctx = db.OpenSQL(ctx, "nfl", "mysql", "root:root@tcp(172.16.102.129:3306)/nfl?autocommit=true")
+	ctx = db.OpenSQL(ctx, "nfl", "postgres", "host=192.168.2.101 port=5432 dbname=nfl user=nfl_api  password=nfl_api sslmode=disable")
 	defer db.Close(ctx) // closes all DB connections
 	teamChannel := make(chan nfl.Teams)
 	go nfl.GetTeam("SEA", ctx, teamChannel)
