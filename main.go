@@ -7,8 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/guregu/db"
-	"golang.org/x/net/context"
+	"github.com/gocraft/dbr"
 	_ "github.com/lib/pq"
 )
 
@@ -16,7 +15,7 @@ var jsonIndent = "  "
 
 func main() {
 	TestDBConnection()
-	TestAPIScheduleRequest()
+	// TestAPIScheduleRequest()
 
 }
 
@@ -27,29 +26,25 @@ func TestAPIScheduleRequest() {
 }
 
 func TestDBConnection() {
-	ctx := context.Background()
-	//db, err := sql.Open("postgres", "host=192.168.2.101 port=5432 dbname=nfl user=nfl_api  password=nfl_api sslmode=require")
 
-	//ctx = db.OpenSQL(ctx, "nfl", "mysql", "nfl_api:nfl_pass@tcp(192.168.2.101:3306)/nfl?autocommit=true")
-	//db, err := sql.Open("postgres", "postgres://pqgotest:password@localhost/pqgotest?sslmode=verify-full")
+	//conn, _ := dbr.Open("postgres", "host=172.16.102.129 port=5432 dbname=nfl user=nfl_api  password=nfl_api sslmode=disable connect_timeout=10", nil)
+	conn, _ := dbr.Open("postgres", "host=192.168.2.101 port=5432 dbname=nfl user=nfl_api  password=nfl_api sslmode=disable connect_timeout=10", nil)
+	defer conn.Close()
 
-	//ctx = db.OpenSQL(ctx, "nfl", "mysql", "root:root@tcp(172.16.102.129:3306)/nfl?autocommit=true")
-	ctx = db.OpenSQL(ctx, "nfl", "postgres", "host=192.168.2.101 port=5432 dbname=nfl user=nfl_api  password=nfl_api sslmode=disable")
-	defer db.Close(ctx) // closes all DB connections
 	teamChannel := make(chan nfl.Teams)
-	go nfl.GetTeam("SEA", ctx, teamChannel)
+	go nfl.GetTeam("SEA", conn, teamChannel)
 	seattle := <-teamChannel
 
 	jsonStr, _ := json.MarshalIndent(seattle, "", jsonIndent)
 	os.Stdout.Write(jsonStr)
 
 	start := time.Now()
-	iter := 2
+	iter := 100
 	teamChannel = make(chan nfl.Teams)
 	teamBlock := make([]nfl.Teams, iter, iter)
 
 	for i := 0; i < iter; i++ {
-		go nfl.GetAllTeams(ctx, teamChannel)
+		go nfl.GetAllTeams(conn, teamChannel)
 		teams := <-teamChannel
 		teamBlock[i] = teams
 	}
