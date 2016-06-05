@@ -1,65 +1,59 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"nfl-api/nfl"
-	"os"
-	"time"
-
-	"github.com/gocraft/dbr"
-	_ "github.com/lib/pq"
+    "encoding/json"
+    "fmt"
+    "nfl-api/nfl"
+    "os"
+    "time"
+    "github.com/gocraft/dbr"
+    _ "github.com/lib/pq"
 )
 
 var jsonIndent = "  "
 
 func main() {
-	TestDBConnection()
-	// TestAPIScheduleRequest()
+    conn, _ := dbr.Open("postgres", "host=192.168.2.101 port=5432 dbname=nfl user=nfl_api  password=nfl_api sslmode=disable connect_timeout=10", nil)
+    defer conn.Close()
+
+    nfl.InitDbSchedule(conn)
+
 
 }
 
-func TestAPIScheduleRequest() {
-	sched := nfl.GetFullSeasonSchedule(2015)
-	jsonStr, _ := json.MarshalIndent(sched, "", jsonIndent)
-	os.Stdout.Write(jsonStr)
-}
+func TestDBConnection(conn *dbr.Connection) {
 
-func TestDBConnection() {
+    //conn, _ := dbr.Open("postgres", "host=172.16.102.129 port=5432 dbname=nfl user=nfl_api  password=nfl_api sslmode=disable connect_timeout=10", nil)
 
-	//conn, _ := dbr.Open("postgres", "host=172.16.102.129 port=5432 dbname=nfl user=nfl_api  password=nfl_api sslmode=disable connect_timeout=10", nil)
-	conn, _ := dbr.Open("postgres", "host=192.168.2.101 port=5432 dbname=nfl user=nfl_api  password=nfl_api sslmode=disable connect_timeout=10", nil)
-	defer conn.Close()
+    teamChannel := make(chan nfl.Teams)
+    go nfl.GetTeam("SEA", conn, teamChannel)
+    seattle := <-teamChannel
 
-	teamChannel := make(chan nfl.Teams)
-	go nfl.GetTeam("SEA", conn, teamChannel)
-	seattle := <-teamChannel
+    jsonStr, _ := json.MarshalIndent(seattle, "", jsonIndent)
+    os.Stdout.Write(jsonStr)
 
-	jsonStr, _ := json.MarshalIndent(seattle, "", jsonIndent)
-	os.Stdout.Write(jsonStr)
+    start := time.Now()
+    iter := 1
+    teamChannel = make(chan nfl.Teams)
+    teamBlock := make([]nfl.Teams, iter, iter)
 
-	start := time.Now()
-	iter := 100
-	teamChannel = make(chan nfl.Teams)
-	teamBlock := make([]nfl.Teams, iter, iter)
+    for i := 0; i < iter; i++ {
+        go nfl.GetAllTeams(conn, teamChannel)
+        teams := <-teamChannel
+        teamBlock[i] = teams
+    }
 
-	for i := 0; i < iter; i++ {
-		go nfl.GetAllTeams(conn, teamChannel)
-		teams := <-teamChannel
-		teamBlock[i] = teams
-	}
+    elapsed := time.Since(start)
 
-	elapsed := time.Since(start)
+    jsonStr, _ = json.MarshalIndent(teamBlock[0], "", jsonIndent)
+    os.Stdout.Write(jsonStr)
+    fmt.Printf("\n%v database proc executions took %s\n", iter, elapsed)
 
-	jsonStr, _ = json.MarshalIndent(teamBlock[0], "", jsonIndent)
-	os.Stdout.Write(jsonStr)
-	fmt.Printf("\n%v database proc executions took %s\n", iter, elapsed)
-
-	teamTotal := 0
-	for i := 0; i < len(teamBlock); i++ {
-		teamTotal += len(teamBlock[i])
-	}
-	fmt.Printf("rows retreived: %v", teamTotal)
+    teamTotal := 0
+    for i := 0; i < len(teamBlock); i++ {
+        teamTotal += len(teamBlock[i])
+    }
+    fmt.Printf("rows retreived: %v", teamTotal)
 
 }
 
