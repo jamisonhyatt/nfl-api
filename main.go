@@ -17,6 +17,8 @@ func main() {
     defer conn.Close()
 
     nfl.InitDbSchedule(conn)
+    //update the current season on startup
+    nfl.WriteFullSeasonSchedule(conn, nfl.GetFullSeasonSchedule(nfl.CurrentSeason()))
 
 
 }

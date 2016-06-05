@@ -13,7 +13,6 @@ type Games []Game
 
 //Game that represents a single game within a season schedule
 type Game struct {
-    Id          int
     Eid       string `xml:"eid,attr" json:"eid"`
     Gsis      int    `xml:"gsis,attr" json:"gsis"`
     Season      int     `db:"season"`

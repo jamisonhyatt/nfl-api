@@ -33,14 +33,23 @@ type Week struct {
 //last nfl reorg, just keeping it simple.
 var firstSeason = 2002
 
+func CurrentSeason() int {
+    now := time.Now()
+
+    //it's still the previous years season until march.
+    if (int(now.Month()) < 3) {
+        return now.Year() -1
+    }
+    return now.Year()
+}
+
 func InitDbSchedule(conn *dbr.Connection) {
     firstWeekInDb := DbGetWeeklySchedule(conn, "REG",firstSeason,  1)
     if (len(firstWeekInDb.Games) == 0) {
         log.Printf("no games in first season (%v), backfilling", firstSeason)
         start := time.Now()
-        BackFillSeasonsAsync(conn)
+        BackFillSeasonsAsync(conn, firstSeason, CurrentSeason())
         elapsed := time.Since(start)
-
         log.Printf("Backfill tooktook %s\n", elapsed)
 
     }
@@ -132,12 +141,11 @@ func SetPeriod(games Games) {
 }
 
 
-func BackFillSeasonsAsync(conn *dbr.Connection) {
+func BackFillSeasonsAsync(conn *dbr.Connection, backfillStart int, backfillEnd int) {
 
     var wg sync.WaitGroup
-    seasonEnd := time.Now().Year()+1
-    ch := make(chan SeasonSchedule, seasonEnd - firstSeason)
-    for i := firstSeason; i < seasonEnd; i++ {
+    ch := make(chan SeasonSchedule, backfillEnd - backfillStart)
+    for i := firstSeason; i < backfillEnd; i++ {
         wg.Add(1)
         go GetFullSeasonScheduleAsync(i, ch)
     }
